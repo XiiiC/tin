@@ -32,8 +32,6 @@ jobs:
     
     - name: Working Test
       run: ./build/tin units/working.tin
-    - name: Working Test Check
-      if: units/working.tin.ast.json != NULL
     - name: Typecheck Test
       run: ./build/tin units/typecheck-test.tin
     - name: Missing Semicolon Test
