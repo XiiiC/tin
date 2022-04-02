@@ -28,6 +28,7 @@ jobs:
     - name: Make tin
       run: make tin
   tests:
+    needs: build
     runs-on: ubuntu-latest
     steps:
     - name: Memory leak check
