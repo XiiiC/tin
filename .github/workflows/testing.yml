@@ -34,3 +34,4 @@ jobs:
            ./build/tin units/missing-arguement.tin
            ./build/tin units/redefined-variable.tin
            ./build/tin units/undefined-variable.tin
+           ./build/tin units/not-a-file.tin
