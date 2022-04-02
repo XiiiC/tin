@@ -31,12 +31,13 @@ jobs:
     - name: Memory leak check
       run: valgrind --leak-check=full --track-origins=yes ./build/tin example.tin
       
-    - name: Run tests
+    - name: Run working test
       run: ./build/tin units/working.tin
-           ./build/tin units/typecheck-test.tin
-           ./build/tin units/missing-semicolon.tin
-           ./build/tin units/missing-arguement.tin
-           ./build/tin units/redefined-variable.tin
-           ./build/tin units/undefined-variable.tin
+    - name: Run typecheck test
+      run: ./build/tin units/typecheck-test.tin
+          ## ./build/tin units/missing-semicolon.tin
+           ##./build/tin units/missing-arguement.tin
+           ##./build/tin units/redefined-variable.tin
+           ##./build/tin units/undefined-variable.tin
            
 
