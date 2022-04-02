@@ -15,11 +15,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       
-    - name: Install dependencies
-      run: 
-        sudo apt-get install build-essential 
-        sudo apt-get valgrind
-        sudo apt-get update
+    - name: Install flex bison
+      run: sudo apt-get install build-essential 
+    - name: Install update
+      run:  sudo apt-get update
+    - name: Install valgrind
+      run: sudo apt-get valgrind
       
     - name: Make tin
       run: make tin
