@@ -1,10 +1,12 @@
 name: Testing
 
 on:
+  pull_request_review:
+    branches:
+        - main
   push:
     branches:
       - main
-      - testing
 
 
 jobs:
@@ -27,11 +29,19 @@ jobs:
     
     - name: Memory leak check
       run: valgrind --leak-check=full --track-origins=yes ./build/tin example.tin
-      
-    - name: Run tests
+    
+    - name: Working Test
+      run: ./build/tin units/working.tin
+      if: units/working.tin.ast.json != NULL
+    - name: Typecheck Test
       run: ./build/tin units/typecheck-test.tin
+    - name: Missing Semicolon Test
            ./build/tin units/missing-semicolon.tin
+    - name: Missing Arguement Test
            ./build/tin units/missing-arguement.tin
+    - name: Redefined Variable Test
            ./build/tin units/redefined-variable.tin
+    - name: Undefined Variable Test
            ./build/tin units/undefined-variable.tin
-           ./build/tin units/not-a-file.tin
+           
+
