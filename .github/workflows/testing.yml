@@ -20,7 +20,7 @@ jobs:
     - name: Install update
       run:  sudo apt-get update
     - name: Install valgrind
-      run: sudo apt-get valgrind
+      run: sudo apt-get install valgrind
       
     - name: Make tin
       run: make tin
