@@ -27,7 +27,9 @@ jobs:
       
     - name: Make tin
       run: make tin
-    
+  tests:
+    runs-on: ubuntu-latest
+    steps:
     - name: Memory leak check
       run: valgrind --leak-check=full --track-origins=yes ./build/tin example.tin
     - name: Run tests
