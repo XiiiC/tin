@@ -1,9 +1,6 @@
 name: Testing
 
 on:
-  pull_request_review:
-    branches:
-        - main
   push:
     branches:
       - main
