@@ -16,9 +16,10 @@ jobs:
     - uses: actions/checkout@v3
       
     - name: Install dependencies
-      run: sudo apt-get install build-essential valgrind
-    - name: Update
-      run: sudo apt-get update
+      run: 
+        sudo apt-get install build-essential 
+        sudo apt-get valgrind
+        sudo apt-get update
       
     - name: Make tin
       run: make tin
