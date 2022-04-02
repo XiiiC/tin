@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - testing
 
 
 jobs:
@@ -29,17 +30,12 @@ jobs:
     
     - name: Memory leak check
       run: valgrind --leak-check=full --track-origins=yes ./build/tin example.tin
-    - name: Working Test
+    - name: Run tests
       run: ./build/tin units/working.tin
-    - name: Typecheck Test
-      run: ./build/tin units/typecheck-test.tin
-    - name: Missing Semicolon Test
+           ./build/tin units/typecheck-test.tin
            ./build/tin units/missing-semicolon.tin
-    - name: Missing Arguement Test
            ./build/tin units/missing-arguement.tin
-    - name: Redefined Variable Test
            ./build/tin units/redefined-variable.tin
-    - name: Undefined Variable Test
            ./build/tin units/undefined-variable.tin
            
 
