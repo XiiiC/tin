@@ -31,6 +31,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+    - name: Tin
+      run: cd tin
     - name: Memory leak check
       run: valgrind --leak-check=full --track-origins=yes ./build/tin example.tin
     - name: Run tests
