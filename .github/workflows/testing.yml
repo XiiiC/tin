@@ -16,11 +16,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
       
     - name: Install flex bison
       run: sudo apt-get install build-essential 
+      
     - name: Install update
       run:  sudo apt-get update
+      
     - name: Install valgrind
       run: sudo apt-get install valgrind
       
@@ -29,7 +32,6 @@ jobs:
     
     - name: Memory leak check
       run: valgrind --leak-check=full --track-origins=yes ./build/tin example.tin
-    
     - name: Working Test
       run: ./build/tin units/working.tin
     - name: Typecheck Test
