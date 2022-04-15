@@ -1,11 +1,11 @@
-name: Testing
+name: READMEtest
 
 on:
   push:
-    branches:
-      - main
-      - testing
-
+    branches: [ main, actionsTesting ]
+    
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
@@ -15,29 +15,23 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
+    - name: Install Prerequisites
+      run: sudo apt-get install build-essential flex bison binutils-riscv64-linux-gnu qemu qemu-system-misc qemu-user
       
-    - name: Install flex bison
-      run: sudo apt-get install build-essential 
+    - name: Get Tin
+      run: git clone https://github.com/aaf6aa/tin.git
+    
+    - name: Open Tin
+      run: cd tin
+    
+    - name: Set Library PATH
+      run: PATH="$PATH:$(pwd)/std"
       
-    - name: Install update
-      run:  sudo apt-get update
-      
-    - name: Install valgrind
-      run: sudo apt-get install valgrind
-      
-    - name: Make tin
+    - name: Make Tin
       run: make tin
-  
-    - name: Memory leak check
-      run: valgrind --leak-check=full --track-origins=yes ./build/tin example.tin
       
-    - name: Run working test
-      run: ./build/tin units/working.tin
-    - name: Run typecheck test
-      run: ./build/tin units/typecheck-test.tin
-          ## ./build/tin units/missing-semicolon.tin
-           ##./build/tin units/missing-arguement.tin
-           ##./build/tin units/redefined-variable.tin
-           ##./build/tin units/undefined-variable.tin
-           
-
+    - name: Build Tin File
+      run: ./build/tin examples/hello_world.tin
+      
+    - name: Execute File
+      run: qemu-riscv64 ./examples/hello_world.tin
