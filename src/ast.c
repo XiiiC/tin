@@ -4,7 +4,7 @@
 
 bool has_dtype(enum ast_node_type type)
 {
-    return type == AstDataType || type == AstAdd || type == AstDiv || type == AstMod || type == AstMul || type == AstPow || type == AstSub || type == AstGreaterThan || type == AstGreaterThanOrEqual  || type == AstLessThan || type == AstLessThanOrEqual  || type == AstEqual || type == AstNotEqual || type == AstAnd || type == AstNot || type == AstOr;
+    return type == AstDataType || type == AstAdd || type == AstDiv || type == AstMod || type == AstMul || type == AstPow || type == AstSub || type == AstBitwiseAnd || type == AstBitwiseOr || type == AstBitwiseXor || type == AstShiftLeft || type == AstShiftRight || type == AstGreaterThan || type == AstGreaterThanOrEqual  || type == AstLessThan || type == AstLessThanOrEqual  || type == AstEqual || type == AstNotEqual || type == AstAnd || type == AstNot || type == AstOr;
 }
 
 ast_node* ast_new(enum ast_node_type type)
@@ -29,13 +29,6 @@ ast_node* ast_new(enum ast_node_type type)
         data_type_node->value.dtype->pointer_level = 0;
         ast_add_child(node, data_type_node);
     }
-    else if (node->type == AstIntegerLit)
-    {
-        ast_node* data_type_node = ast_new(AstDataType);
-        data_type_node->value.dtype = data_type_new("i32");
-        data_type_node->value.dtype->pointer_level = 0;
-        ast_add_child(node, data_type_node);
-    }
     else if (node->type == AstStringLit)
     {
         ast_node* data_type_node = ast_new(AstDataType);
@@ -51,25 +44,33 @@ ast_node* ast_new(enum ast_node_type type)
     return node;
 }
 
-void ast_free(ast_node* node)
+void ast_free(ast_node* node, bool keep_symbols)
 {
+    if (node == 0)
+    {
+        return;
+    }
+
     for (size_t i = 0; i < node->children->size; i++)
     {
-        ast_free(vector_get_item(node->children, i));
+        ast_free(vector_get_item(node->children, i), keep_symbols);
     }
     vector_free(node->children);
     
-    if (node->type == AstAsm || node->type == AstIdentifier || node->type == AstStringLit)
+    if (node->type == AstAsm || node->type == AstIdentifier || node->type == AstInclude || node->type == AstNamespace || node->type == AstStringLit)
     {
         free(node->value.string);
     }
-    else if (node->type == AstRoot || node->type == AstScope)
+    else if ((node->type == AstRoot || node->type == AstScope))
     {
-        for (size_t i = 0; i < node->value.symbol_table->capacity; i++)
+        if (!keep_symbols)
         {
-            if (node->value.symbol_table->keys[i] != 0)
+            for (size_t i = 0; i < node->value.symbol_table->capacity; i++)
             {
-                symbol_free(node->value.symbol_table->items[i]);
+                if (node->value.symbol_table->keys[i] != 0)
+                {
+                    symbol_free(node->value.symbol_table->items[i]);
+                }
             }
         }
 
@@ -98,11 +99,15 @@ ast_node* ast_copy(ast_node* node)
     copy->type = node->type;
     copy->value = node->value;
 
-    if (node->type == AstAsm || node->type == AstIdentifier || node->type == AstStringLit)
+    if (node->type == AstAsm || node->type == AstIdentifier || node->type == AstInclude || node->type == AstNamespace || node->type == AstStringLit)
     {
         copy->value.string = strdup(node->value.string);
     }
-    else if (node->type == AstDataType)
+    else if (node->type == AstRoot || node->type == AstScope)
+    {
+        copy->value.symbol_table = hashtable_copy(node->value.symbol_table);
+    }
+    else if (has_dtype(node->type))
     {
         copy->value.dtype = data_type_copy(node->value.dtype);
     }
@@ -120,7 +125,7 @@ ast_node* ast_copy(ast_node* node)
 
     for (size_t i = 0; i < node->children->size; i++)
     {
-        ast_node* child_copy = vector_get_item(node->children, i);
+        ast_node* child_copy = ast_copy(vector_get_item(node->children, i));
         child_copy->parent = copy;
         vector_set_item(copy->children, i, child_copy);
     }
@@ -136,14 +141,17 @@ void ast_add_child(ast_node* node, ast_node* child)
 
 void ast_set_child(ast_node* node, size_t index, ast_node* new_child)
 {
-    if (index >= node->children->size)
+    if (new_child != 0)
     {
-        return;
+        new_child->parent = node;
     }
-    new_child->parent = node;
     vector_set_item(node->children, index, new_child);
 }
-
+void ast_insert_child(ast_node* node, size_t index, ast_node* new_child)
+{
+    vector_insert_item(node->children, index, new_child);
+    new_child->parent = node;
+}
 ast_node* ast_get_child(ast_node* node, size_t index)
 {
     return vector_get_item(node->children, index);
@@ -157,7 +165,7 @@ size_t ast_get_child_index(ast_node* node, ast_node* child)
 void ast_delete_child(ast_node* node, ast_node* child)
 {
     vector_delete_item(node->children, child);
-    ast_free(child);
+    ast_free(child, 0);
 }
 
 ast_node* ast_get_current_function(ast_node* node)
@@ -214,7 +222,7 @@ data_type* ast_find_data_type(ast_node* node)
     return 0;
 }
 
-symbol* ast_find_symbol(ast_node* node, char* name)
+symbol *ast_find_symbol(ast_node *node, char *symbol_key)
 {
     symbol* sym = 0;
 
@@ -223,7 +231,7 @@ symbol* ast_find_symbol(ast_node* node, char* name)
     {
         if (node->type == AstRoot || node->type == AstScope)
         {
-            sym = (symbol*)hashtable_get_item(node->value.symbol_table, name);
+            sym = (symbol*)hashtable_get_item(node->value.symbol_table, symbol_key);
         }
 
         node = node->parent;
@@ -235,21 +243,21 @@ symbol* ast_find_symbol(ast_node* node, char* name)
 
 char* ast_find_closest_src_line(ast_node* node)
 {
-    while (node->src_line == 0 && node != 0)
+    while (node != 0 && node->src_line == 0)
     {
         node = node->parent;
+    }
+
+    if (node == 0)
+    {
+        return 0;
     }
 
     return node->src_line;
 }
 
 
-void ast_print(ast_node* node, bool recursive)
-{
-    ast_print_to_file(node, stdout, recursive);
-}
-
-void ast_print_to_file(ast_node* node, FILE* file, bool recursive)
+void ast_print_to_file(ast_node* node, FILE* file)
 {
     fprintf(file, "{\"type\": \"%s\"", ast_type_names[node->type]);
 
@@ -258,19 +266,35 @@ void ast_print_to_file(ast_node* node, FILE* file, bool recursive)
         fprintf(file, ",\"src_line\": \"%s\"", node->src_line);
     }
 
-    if (node->type == AstAsm || node->type == AstIdentifier || node->type == AstStringLit)
+    if (node->type == AstAsm || node->type == AstIdentifier || node->type == AstInclude || node->type == AstNamespace || node->type == AstStringLit)
     {
         fprintf(file, ",\"str_value\": \"%s\"", node->value.string);
     }
+    else if (node->type == AstBoolLit)
+    {
+        fprintf(file, ",\"bool_value\": %s", node->value.boolean ? "true" : "false");
+    }
+    else if (node->type == AstFloatLit)
+    {
+        fprintf(file, ",\"float_value\": %f", node->value.floating);
+    }
     else if (node->type == AstIntegerLit)
     {
-        fprintf(file, ",\"int_value\": %ld", node->value.integer);
+        data_type* dtype = ast_find_data_type(node);
+        if (dtype->_signed) 
+        {
+            fprintf(file, ",\"int_value\": %ld", node->value.integer);
+        }
+        else
+        {
+            fprintf(file, ",\"int_value\": %lu", *(uint64_t*)&node->value.integer);
+        }
     }
     else if (node->type == AstSymbol)
     {
-        fprintf(file, ",\"str_value\": \"%s\"", node->value.symbol->name);
+        fprintf(file, ",\"symbol_key\":\"%s\",\"str_value\": \"%s\"", node->value.symbol->key, node->value.symbol->name);
     }
-    else if (node->type == AstRoot || node->type == AstScope)
+    else if ((node->type == AstRoot || node->type == AstScope) && node->value.symbol_table->size > 0)
     {
         fprintf(file, ",\"symbol_table\": ");
         symtable_print_to_file(node->value.symbol_table, file);
@@ -281,13 +305,13 @@ void ast_print_to_file(ast_node* node, FILE* file, bool recursive)
         fprintf(file, ",\"name\": \"%s\",\"pointer_level\": %ld", node->value.dtype->name, node->value.dtype->pointer_level);
     }
 
-    if (recursive && node->children->size > 0)
+    if (node->children->size > 0)
     {
         fprintf(file, ",\"children\": [");
 
         for (size_t i = 0; i < node->children->size; i++)
         {
-            ast_print_to_file(vector_get_item(node->children, i), file, true);
+            ast_print_to_file(vector_get_item(node->children, i), file);
             if (i < node->children->size - 1) // don't print a comma after the last child
             {
                 fprintf(file, ",");

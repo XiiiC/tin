@@ -116,7 +116,7 @@ Follow the [prerequisites](#prerequisites) and [installation](#installation) gui
 Run the following command to fetch all of the required packages in order to build the toolchain:
 
   ```sh
-  $ sudo apt-get install build-essential flex bison
+  $ sudo apt-get install build-essential flex bison binutils-riscv64-linux-gnu qemu qemu-system-misc qemu-user
   ```
 
 ### Installation
@@ -124,15 +124,25 @@ Run the following command to fetch all of the required packages in order to buil
 1. Clone the repo
    ```sh
    $ git clone https://github.com/aaf6aa/tin.git
+   $ cd tin
    ```
-2. Make the project 
+2. Add the standard library to PATH
+   ```sh
+   $ PATH="$PATH:$(pwd)/std"
+   ```
+3. Make the project 
    ```sh
    $ make tin
    ```
-3. Compile your .tin file
+4. Compile your .tin file
    ```sh
    $ ./build/tin file-name.tin
    ```
+5. Run the executable through QEMU
+   ```sh
+   $ qemu-riscv64 ./file-name
+   ```
+
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -154,7 +164,7 @@ _For more examples, please refer to the [documentation](https://github.com/aaf6a
 
 - [ ] Standard Libraries
 - [ ] Optimisation
-- [ ] Implementing #include
+- [x] Implementing #include
 - [ ] Memory Tools
 - [ ] Non-RISC-V Interpreter
 

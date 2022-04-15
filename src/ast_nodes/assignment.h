@@ -7,7 +7,7 @@
 
 void preprocess_assignment(preproc_state* state, ast_node* node)
 {
-    symbol* left_sym = ast_get_child(node, 0)->value.symbol; // 1st child should always be an identifier/symbol
+    symbol* left_sym = ast_get_child(node, 0)->value.symbol; // 1st child should always be a symbol
     ast_node* right_node = ast_get_child(node, 1);
 
     // just look for the closest data type, expressions should already be validated to have the same data type for all values
@@ -22,6 +22,10 @@ void preprocess_assignment(preproc_state* state, ast_node* node)
     if (is_int(left_sym->dtype) && is_int(found_dtype) && !data_type_compare(left_sym->dtype, found_dtype))
     {
         preproc_verb(state, node, "%s, implicit integer conversion\n", left_sym->name);
+    }
+    else if (is_float(left_sym->dtype) && is_float(found_dtype) && !data_type_compare(left_sym->dtype, found_dtype))
+    {
+        preproc_verb(state, node, "%s, implicit float conversion\n", left_sym->name);
     }
     else if (!data_type_compare(left_sym->dtype, found_dtype))
     {

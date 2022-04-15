@@ -11,6 +11,8 @@
 string      \"[^\"\n]*\"
 /* match identifiers */
 identifier  [a-zA-Z_][a-zA-Z0-9_]*
+/* match floats */
+float       [-]?[0-9]+\.[0-9]+
 /* match integers */
 integer     [-]?[0-9]+
 /* match multiline comments */
@@ -26,9 +28,14 @@ comment		[/][*][^*]*[*]+([^*/][^*]*[*]+)*[/]
 "u16"                   { return U16;   }
 "i32"                   { return I32;   }
 "u32"                   { return U32;   }
+"i64"                   { return I64;   }
+"u64"                   { return U64;   }
+"f32"                   { return F32;   }
+"f64"                   { return F64;   }
 "bool"                  { return BOOL;  }
 "void"                  { return VOID;  }
 "ptr"                   { return PTR;   }
+"ref"                   { return REF;   }
 
 "false"                 { 
     ast_node* node = ast_new(AstBoolLit);
@@ -43,46 +50,55 @@ comment		[/][*][^*]*[*]+([^*/][^*]*[*]+)*[/]
     return BOOL_LIT;
 }
 
-"alloc"                 { return ALLOC; }   /* match keywords */
-"asm"                   { return ASM;   }
-"break"                 { return BREAK; }
-"continue"              { return CONT;  }
-"free"                  { return FREE;  }
-"fn"                    { return FUNC;  }
-"if"                    { return IF;    }
-"else"                  { return ELSE;  }
-"input"                 { return INPUT; }
-"print"                 { return PRINT; }
-"return"                { return RETURN;}
-"while"                 { return WHILE; }
+"alloc"                 { return ALLOC;   }   /* match keywords */
+"asm"                   { return ASM;     }
+"break"                 { return BREAK;   }
+"continue"              { return CONT;    }
+"for"                   { return FOR;     }
+"free"                  { return FREE;    }
+"fn"                    { return FUNC;    }
+"if"                    { return IF;      }
+"else"                  { return ELSE;    }
+"include"               { return INCLUDE; }
+"input"                 { return INPUT;   }
+"print"                 { return PRINT;   }
+"return"                { return RETURN;  }
+"while"                 { return WHILE;   }
 
-"="                     { return IS;    }   /* match operators */
-"+"                     { return ADD;   }
-"-"                     { return SUB;   }
-"*"                     { return MUL;   }
-"/"                     { return DIV;   }
-"**"                    { return POW;   }
-"%"                     { return MOD;   }
-"<"                     { return LT;    }
-">"                     { return GT;    }
-"<="                    { return LE;    }
-">="                    { return GE;    }
-"=="                    { return EQ;    }
-"!="                    { return NE;    }
-"&&"                    { return AND;   }
-"!"                     { return NOT;    }
-"||"                    { return OR;    }
-"&"                    	{ return REF; 	}
+"="                     { return IS;  }   /* match operators */
+"+"                     { return ADD; }
+"-"                     { return SUB; }
+"*"                     { return MUL; }
+"/"                     { return DIV; }
+"**"                    { return POW; }
+"%"                     { return MOD; }
+"<<<"                   { return ROTL; }
+">>>"                   { return ROTR; }
+"<<"                    { return SHIFTL; }
+">>"                    { return SHIFTR; }
+"<"                     { return LT;  }
+">"                     { return GT;  }
+"<="                    { return LE;  }
+">="                    { return GE;  }
+"=="                    { return EQ;  }
+"!="                    { return NE;  }
+"&&"                    { return AND; }
+"!"                     { return NOT; }
+"||"                    { return OR;  }
+"&"                     { return BAND; }
+"|"                     { return BOR;  }
+"^"                     { return BXOR; }
 
 ";"                     { return SEMI_COLON;    }
+"::"                    { return DOUBLE_COLON;  }
 ":"                     { return COLON;         }
 ","                     { return COMMA;         }
 "("                     { return BRACKET_L;     }
 ")"                     { return BRACKET_R;     }
 "{"                     { return BRACE_L;       }
 "}"                     { return BRACE_R;       }
-"["                     { return SQUARE_BRACKET_L;     }
-"]"                     { return SQUARE_BRACKET_R;     }
+"["                     { return SQUARE_BRACKET_L; }
+"]"                     { return SQUARE_BRACKET_R; }
 
 {string} { 
     ast_node* node = ast_new(AstStringLit);
@@ -97,9 +113,38 @@ comment		[/][*][^*]*[*]+([^*/][^*]*[*]+)*[/]
     *yylval = node;
     return IDENTIFIER;
 }
+{float} {
+    ast_node* node = ast_new(AstFloatLit);
+    ast_node* data_type_node = ast_new(AstDataType);
+
+    node->value.floating = strtod(yytext, 0);
+    data_type_node->value.dtype = data_type_new("f64");
+
+    data_type_node->value.dtype->pointer_level = 0;
+    ast_add_child(node, data_type_node);
+
+    *yylval = node;
+    return FLOAT;
+}
 {integer} {
     ast_node* node = ast_new(AstIntegerLit);
-    node->value.integer = atol(yytext);
+    ast_node* data_type_node = ast_new(AstDataType);
+
+    bool _signed = yytext[0] == '-';
+    if (_signed)
+    {
+        node->value.integer = strtoll(yytext, 0, 10);
+        data_type_node->value.dtype = data_type_new("i64");
+    }
+    else
+    {
+        node->value.integer = strtoull(yytext, 0, 10);
+        data_type_node->value.dtype = data_type_new("u64");
+    }
+
+    data_type_node->value.dtype->pointer_level = 0;
+    ast_add_child(node, data_type_node);
+
     *yylval = node;
     return INTEGER;
 }
